@@ -1,40 +1,44 @@
 from selenium import webdriver
-from selenium.webdriver.support.ui import Select
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import random
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import time
 
 chrome_options = webdriver.ChromeOptions()
-prefs = {"profile.default_content_setting_values.notifications" : 2}
-chrome_options.add_experimental_option("prefs",prefs)
+prefs = {"profile.default_content_setting_values.notifications": 2}
+chrome_options.add_experimental_option("prefs", prefs)
 driver = webdriver.Chrome(chrome_options=chrome_options)
-driver.get("https://www.facebook.com/")
 
-time.sleep(4)
-driver.find_element_by_id("email").send_keys('9898989898') #replace with your email or phone  number
-time.sleep(2)
-driver.find_element_by_id("pass").send_keys('pass123$%') #replace with your password
-time.sleep(2)
-driver.find_element_by_name("login").click()
-time.sleep(4)
-driver.get('https://www.facebook.com/profile.php?id=100089108025261') #replace with account url or that account which you want to report it.
-time.sleep(4)
-driver.find_element_by_xpath('/html/body/div[1]/div[1]/div[1]/div/div[3]/div/div/div/div[1]/div[1]/div/div/div[3]/div/div/div/div[2]/div/div/div/div[1]').click()#three dots
-time.sleep(3)
-driver.find_element_by_xpath('/html/body/div[1]/div[1]/div[1]/div/div[3]/div/div/div/div[2]/div/div/div[1]/div[1]/div/div/div[1]/div/div[1]/div/div[1]/div/div[2]').click()#find or report
-time.sleep(3)
-driver.find_element_by_xpath('/html/body/div[1]/div[1]/div[1]/div/div[4]/div/div/div[2]/div/div/div[1]/div/div[2]/div/div/div/div[3]/div/div[2]/div/div/div[1]/div/div/div/div[1]/div/div[1]/div/div/div/div/span').click()#report option
-time.sleep(3)
-driver.find_element_by_xpath('/html/body/div[1]/div[1]/div[1]/div/div[4]/div/div/div[2]/div/div/div[1]/div/div[2]/div/div/div/div[4]/div/div[2]/div/div/div[1]/div/div/div/div[1]/div/div[1]/div/div/div/div/span').click()#me
-time.sleep(3)
-driver.find_element_by_xpath('/html/body/div[1]/div[1]/div[1]/div/div[4]/div/div/div[2]/div/div/div[1]/div/div[2]/div/div/div/div[4]/div/div/div[4]/div/div').click()#submit
-time.sleep(3)
-driver.find_element_by_xpath('/html/body/div[1]/div[1]/div[1]/div/div[4]/div/div/div[2]/div/div/div[1]/div/div[2]/div/div/div/div[2]/div[2]/div/div').click()#next button
-time.sleep(3)
-driver.find_element_by_xpath('/html/body/div[1]/div[1]/div[1]/div/div[4]/div/div/div[2]/div/div/div[1]/div/div[2]/div/div/div/div[5]/div[2]/div/div/div/div').click() #done
-time.sleep(30)
+def wait_for_element_click(locator):
+    WebDriverWait(driver, 10).until(EC.element_to_be_clickable(locator)).click()
 
+def login_to_facebook(email, password):
+    driver.get("https://www.facebook.com/")
+    wait_for_element_click((By.ID, "email")).send_keys(email)
+    wait_for_element_click((By.ID, "pass")).send_keys(password)
+    wait_for_element_click((By.NAME, "login"))
+
+def report_account(account_url):
+    driver.get(account_url)
+    wait_for_element_click((By.XPATH, '//div[contains(@aria-label, "More options")]'))
+    try:
+        wait_for_element_click((By.XPATH, '//span[text()="Find support or report profile"]'))
+    except NoSuchElementException:
+        # Handle potential alternative menus
+        print("Alternative menu structure encountered. Adapting...")  # Add specific logic here
+
+    wait_for_element_click((By.LINK_TEXT, "Report profile"))
+    wait_for_element_click((By.XPATH, '//span[text()="Me"]'))  # Select a reason for reporting
+    wait_for_element_click((By.XPATH, '//div[text()="Submit"]'))
+    wait_for_element_click((By.XPATH, '//button[text()="Next"]'))
+    wait_for_element_click((By.XPATH, '//button[text()="Done"]'))
+
+try:
+    login_to_facebook("your_email@example.com", "your_password")
+    account_to_report = "https://www.facebook.com/profile.php?id=100089108025261"  # Replace with actual URL
+    report_account(account_to_report)
+except (TimeoutException, NoSuchElementException) as e:
+    print("An error occurred:", e)
+finally:
+    driver.quit()
